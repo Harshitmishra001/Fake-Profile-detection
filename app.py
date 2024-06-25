@@ -1,79 +1,91 @@
-from flask import Flask, request, render_template, redirect, url_for
-from keras.models import load_model
-import numpy as np
-import cv2
-import pandas as pd
-from sklearn.preprocessing import OneHotEncoder
 import os
+import tensorflow as tf
+from tensorflow.keras.models import load_model
+from flask import Flask, request, jsonify, render_template, redirect, url_for
+import numpy as np
 
 app = Flask(__name__)
 
-# Define paths
-DISCRIMINATOR_MODEL_PATH = 'discriminator_model.h5'
-GENERATOR_MODEL_PATH = 'generator_model.h5'
-PROFILE_CSV_PATH = 'fake_profiles.csv'
-UPLOAD_FOLDER = 'uploads/'
+# Define absolute paths to the models
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DISCRIMINATOR_MODEL_PATH = os.path.join(BASE_DIR, 'discriminator_model.h5')
+GENERATOR_MODEL_PATH = os.path.join(BASE_DIR, 'generator_model.h5')
 
-# Create the uploads folder if it doesn't exist
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+# Define a custom layer to handle the unrecognized arguments
+class CustomConv2DTranspose(tf.keras.layers.Conv2DTranspose):
+    def __init__(self, *args, groups=1, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.groups = groups
 
-# Load the saved models
-discriminator = load_model(DISCRIMINATOR_MODEL_PATH)
-generator = load_model(GENERATOR_MODEL_PATH)
+    def get_config(self):
+        config = super().get_config()
+        config.update({"groups": self.groups})
+        return config
 
-# Helper functions
-def load_and_preprocess_image(image_path, img_shape):
-    img = cv2.imread(image_path)
-    if img is None:
-        raise ValueError(f"Failed to load image: {image_path}")
-    img = cv2.resize(img, (img_shape[1], img_shape[0]))
-    img = (img / 127.5) - 1.0  # Normalize image to [-1, 1]
-    return np.expand_dims(img, axis=0)  # Add batch dimension
+# Register the custom object
+tf.keras.utils.get_custom_objects().update({'CustomConv2DTranspose': CustomConv2DTranspose})
 
-def load_profile_info(csv_file, image_name):
-    profiles = pd.read_csv(csv_file)
-    profile_data = profiles[profiles['image_path'].str.contains(image_name.split('.')[0])]
-    return profile_data.drop(columns=['image_path']).values
+# Function to load models with error handling
+def load_models(generator_path, discriminator_path):
+    try:
+        # Load generator model
+        custom_objects = {'Conv2DTranspose': CustomConv2DTranspose}
+        generator = load_model(generator_path, custom_objects=custom_objects)
+        print(f"Successfully loaded generator model from {generator_path}")
+    except Exception as e:
+        print(f"Error loading generator model: {e}")
+        generator = None
 
-def classify_image(discriminator, image, profile_encoded):
-    if profile_encoded is None:
-        print("Cannot classify image without profile information.")
-        return None
-    profile_encoded = np.reshape(profile_encoded, (1, -1))  # Flatten the array
-    expected_size = discriminator.input_shape[1][1]
-    profile_encoded = np.pad(profile_encoded, [(0, 0), (0, expected_size - profile_encoded.shape[1])])
-    prediction = discriminator.predict([image, profile_encoded])
-    return prediction
+    try:
+        # Load discriminator model
+        discriminator = load_model(discriminator_path)
+        print(f"Successfully loaded discriminator model from {discriminator_path}")
+    except Exception as e:
+        print(f"Error loading discriminator model: {e}")
+        discriminator = None
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
+    return generator, discriminator
+
+generator, discriminator = load_models(GENERATOR_MODEL_PATH, DISCRIMINATOR_MODEL_PATH)
+
+if generator is None or discriminator is None:
+    print("Failed to load models. Exiting...")
+    exit(1)
+
+# Home route
+@app.route('/')
+def home():
+    return render_template("index.html")
+
+@app.route('/generate', methods=['GET', 'POST'])
+def generate():
     if request.method == 'POST':
-        image = request.files['image']
-        profile_data = request.form['profile_data']
+        try:
+            input_data = request.form['input_data']
+            input_array = np.array(eval(input_data)).reshape((1, -1))  # Adjust reshape according to your input shape
+            
+            generated_data = generator.predict(input_array)
+            result = {'generated_data': generated_data.tolist()}
+            
+            return render_template('result.html', result=result)
+        except Exception as e:
+            return render_template('result.html', result={'error': str(e)})
+    return render_template('generate.html')
 
-        # Save the uploaded image
-        image_path = os.path.join(UPLOAD_FOLDER, image.filename)
-        image.save(image_path)
-
-        # Preprocess the image
-        img_shape = (64, 64, 3)
-        sample_image = load_and_preprocess_image(image_path, img_shape)
-
-        # Load and preprocess the profile data
-        sample_profile_info = load_profile_info(PROFILE_CSV_PATH, image.filename)
-        if sample_profile_info.size == 0:
-            return "No profile information found. Check if the image name is present in the CSV file."
-
-        encoder = OneHotEncoder()
-        sample_profile_encoded = encoder.fit_transform(sample_profile_info).toarray()
-
-        # Classify the image
-        prediction = classify_image(discriminator, sample_image, sample_profile_encoded)
-        result = "Fake" if prediction > 0.5 else "Real"
-
-        return render_template('result.html', result=result)
-
-    return render_template('index.html')
+@app.route('/discriminate', methods=['GET', 'POST'])
+def discriminate():
+    if request.method == 'POST':
+        try:
+            input_data = request.form['input_data']
+            input_array = np.array(eval(input_data)).reshape((1, -1))  # Adjust reshape according to your input shape
+            
+            discrimination_result = discriminator.predict(input_array)
+            result = {'discrimination_result': discrimination_result.tolist()}
+            
+            return render_template('result.html', result=result)
+        except Exception as e:
+            return render_template('result.html', result={'error': str(e)})
+    return render_template('discriminate.html')
 
 if __name__ == '__main__':
     app.run(debug=True)

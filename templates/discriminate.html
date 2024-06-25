@@ -1,0 +1,12 @@
+{% extends 'base.html' %} {% block content %}
+<section id="discriminate" class="section">
+    <div class="container">
+        <h2>Discriminate Data</h2>
+        <form action="/discriminate" method="POST">
+            <label for="input_data">Input Data (e.g., image URL or text):</label><br>
+            <input type="text" id="input_data" name="input_data" placeholder="URL or text" size="50"><br><br>
+            <button type="submit">Discriminate</button>
+        </form>
+    </div>
+</section>
+{% endblock %}

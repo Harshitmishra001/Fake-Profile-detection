@@ -1,0 +1,12 @@
+{% extends 'base.html' %} {% block content %}
+<section id="generate" class="section">
+    <div class="container">
+        <h2>Generate Data</h2>
+        <form action="/generate" method="POST">
+            <label for="input_data">Input Data (e.g., noise vectors):</label><br>
+            <input type="text" id="input_data" name="input_data" placeholder="[0.1, 0.2, -0.3, ...]" size="50"><br><br>
+            <button type="submit">Generate</button>
+        </form>
+    </div>
+</section>
+{% endblock %}

@@ -4,13 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fake Profile Detection - Result</title>
+    <title>Result</title>
 </head>
 
 <body>
-    <h1>Fake Profile Detection Result</h1>
-    <p>The profile is classified as: <strong>{{ result }}</strong></p>
-    <a href="/">Go back</a>
+    <h1>Result</h1>
+    <pre>{{ result }}</pre>
+    <a href="{{ url_for('home') }}">Back to Home</a>
 </body>
 
 </html>
