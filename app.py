@@ -67,9 +67,9 @@ def generate():
             generated_data = generator.predict(input_array)
             result = {'generated_data': generated_data.tolist()}
             
-            return render_template('result.html', result=result)
+            return jsonify(result)
         except Exception as e:
-            return render_template('result.html', result={'error': str(e)})
+            return jsonify({'error': str(e)})
     return render_template('generate.html')
 
 @app.route('/discriminate', methods=['GET', 'POST'])
@@ -82,9 +82,9 @@ def discriminate():
             discrimination_result = discriminator.predict(input_array)
             result = {'discrimination_result': discrimination_result.tolist()}
             
-            return render_template('result.html', result=result)
+            return jsonify(result)
         except Exception as e:
-            return render_template('result.html', result={'error': str(e)})
+            return jsonify({'error': str(e)})
     return render_template('discriminate.html')
 
 if __name__ == '__main__':

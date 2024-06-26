@@ -2,11 +2,28 @@
 <section id="generate" class="section">
     <div class="container">
         <h2>Generate Data</h2>
-        <form action="/generate" method="POST">
+        <form id="generate-form">
             <label for="input_data">Input Data (e.g., noise vectors):</label><br>
             <input type="text" id="input_data" name="input_data" placeholder="[0.1, 0.2, -0.3, ...]" size="50"><br><br>
             <button type="submit">Generate</button>
         </form>
+        <div id="result"></div>
     </div>
 </section>
+
+<script>
+    document.getElementById('generate-form').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const inputData = document.getElementById('input_data').value;
+        const response = await fetch('/generate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `input_data=${encodeURIComponent(inputData)}`
+        });
+        const result = await response.json();
+        document.getElementById('result').innerHTML = JSON.stringify(result, null, 2);
+    });
+</script>
 {% endblock %}
