@@ -3,6 +3,8 @@ import tensorflow as tf
 from tensorflow.keras.models import load_model
 from flask import Flask, request, jsonify, render_template
 import numpy as np
+from PIL import Image
+import io
 
 app = Flask(__name__)
 
@@ -76,10 +78,13 @@ def generate():
 def discriminate():
     if request.method == 'POST':
         try:
-            input_data = request.form['input_data']
-            input_array = np.array(eval(input_data)).reshape((1, 64, 64, 3))  # Adjust reshape according to your input shape
-            
-            discrimination_result = discriminator.predict(input_array)
+            file = request.files['file']
+            img = Image.open(io.BytesIO(file.read()))
+            img = img.resize((64, 64))
+            img_array = np.array(img) / 255.0  # Normalize the image data to 0-1 range
+            img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
+
+            discrimination_result = discriminator.predict(img_array)
             result = {'discrimination_result': discrimination_result.tolist()}
             
             return jsonify(result)

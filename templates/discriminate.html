@@ -2,10 +2,10 @@
 <section id="discriminate" class="section">
     <div class="container">
         <h2>Discriminate Data</h2>
-        <form id="discriminate-form">
-            <label for="input_data">Input Data (e.g., image data):</label><br>
-            <input type="text" id="input_data" name="input_data" placeholder="[[[0, 0, 0], [255, 255, 255], ...]]" size="100"><br><br>
-            <button type="submit">Discriminate</button>
+        <form id="discriminate-form" enctype="multipart/form-data">
+            <label for="file">Upload Profile Image:</label><br>
+            <input type="file" id="file" name="file" accept="image/*"><br><br>
+            <button type="submit">Classify</button>
         </form>
         <div id="result"></div>
     </div>
@@ -14,14 +14,16 @@
 <script>
     document.getElementById('discriminate-form').addEventListener('submit', async function(event) {
         event.preventDefault();
-        const inputData = document.getElementById('input_data').value;
+        const formData = new FormData();
+        const fileField = document.querySelector('input[type="file"]');
+
+        formData.append('file', fileField.files[0]);
+
         const response = await fetch('/discriminate', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: `input_data=${encodeURIComponent(inputData)}`
+            body: formData,
         });
+
         const result = await response.json();
         document.getElementById('result').innerHTML = JSON.stringify(result, null, 2);
     });
