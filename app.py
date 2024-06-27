@@ -1,7 +1,7 @@
 import os
 import tensorflow as tf
 from tensorflow.keras.models import load_model
-from flask import Flask, request, jsonify, render_template, redirect, url_for
+from flask import Flask, request, jsonify, render_template
 import numpy as np
 
 app = Flask(__name__)
@@ -62,7 +62,7 @@ def generate():
     if request.method == 'POST':
         try:
             input_data = request.form['input_data']
-            input_array = np.array(eval(input_data)).reshape((1, -1))  # Adjust reshape according to your input shape
+            input_array = np.array(eval(input_data)).reshape((1, 100))  # Adjust reshape according to your input shape
             
             generated_data = generator.predict(input_array)
             result = {'generated_data': generated_data.tolist()}
@@ -77,7 +77,7 @@ def discriminate():
     if request.method == 'POST':
         try:
             input_data = request.form['input_data']
-            input_array = np.array(eval(input_data)).reshape((1, -1))  # Adjust reshape according to your input shape
+            input_array = np.array(eval(input_data)).reshape((1, 64, 64, 3))  # Adjust reshape according to your input shape
             
             discrimination_result = discriminator.predict(input_array)
             result = {'discrimination_result': discrimination_result.tolist()}
